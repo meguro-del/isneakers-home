@@ -60,7 +60,7 @@ function setCw(i){
   setTimeout(()=>{img.onload=()=>card.classList.remove('out'); img.src=cwImg(c);},260);
   card.href=cwHref(c);
   document.getElementById('heroWord').textContent=c.w;
-  if(c.h){document.getElementById('heroName').innerHTML=c.h; img.alt=c.nm; document.getElementById('heroAll').href='https://www.isneakers171.com/products?query='+encodeURIComponent(c.nm);}
+  if(c.h){const hn=document.getElementById('heroName'); hn.innerHTML=c.h; hn.style.fontSize=''; const fr=hn.clientWidth/hn.scrollWidth; if(fr<1) hn.style.fontSize=(parseFloat(getComputedStyle(hn).fontSize)*fr*0.96)+'px'; img.alt=c.nm; document.getElementById('heroAll').href='https://www.isneakers171.com/products?query='+encodeURIComponent(c.nm);}
   document.getElementById('cwZh').textContent=c.zh;
   document.getElementById('cwEn').textContent=`${c.en} / ${c.sku}`;
   document.getElementById('skuSticker').textContent=c.sku;
