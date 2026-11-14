@@ -81,6 +81,7 @@ function parseTitle(t){
   t=w.join(' ').replace(/ x /gi,' × ');
   const rules=[[/^Bape × Adidas( Originals)?/i,'BAPE × ADIDAS',1],[/^(Nike )?Air Jordan/i,'JORDAN',0],[/^.+ × (Nike )?Air Jordan/i,'JORDAN',0],[/^Nike /i,'NIKE',1],[/^Adidas( Originals)? /i,'ADIDAS',1],[/^(Drew House|Off-White|New Balance|Onitsuka Tiger|Water The Plant) /i,'',1]];
   for(const [re,b,strip] of rules){const m=t.match(re); if(m) return {b:(b||m[1]).toUpperCase(), n:strip?t.slice(m[0].length).trim():t.replace(/^Nike /i,'')};}
+  const c=t.match(/^(\S+) × (\S+(?: House| White)?) (.+)$/); if(c) return {b:(c[1]+' × '+c[2]).toUpperCase(),n:c[3]};
   const i=t.indexOf(' '); return i<0?{b:t.toUpperCase(),n:t}:{b:t.slice(0,i).toUpperCase(),n:t.slice(i+1)};
 }
 /* 用 SHOPLINE 給的完整圖片網址（含 ?source_format=…）：剛上架的商品 CDN 還沒產生縮圖，少了這個參數會讀不到 */
