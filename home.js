@@ -84,7 +84,7 @@ function parseTitle(t){
   const i=t.indexOf(' '); return i<0?{b:t.toUpperCase(),n:t}:{b:t.slice(0,i).toUpperCase(),n:t.slice(i+1)};
 }
 /* 用 SHOPLINE 給的完整圖片網址（含 ?source_format=…）：剛上架的商品 CDN 還沒產生縮圖，少了這個參數會讀不到 */
-const pick=im=>{ if(!im) return ''; const ss=im.getAttribute('data-srcset')||im.getAttribute('srcset')||''; const list=ss.split(',').map(x=>x.trim().split(/\s+/)).filter(x=>x[0]).map(x=>({u:x[0],w:parseInt(x[1])||0})).sort((a,b)=>a.w-b.w); const hit=list.find(x=>x.w>=540)||list[list.length-1]; return hit?hit.u:(im.getAttribute('data-src')||im.getAttribute('src')||''); };
+function pick(im){ if(!im) return ''; const ss=im.getAttribute('data-srcset')||im.getAttribute('srcset')||''; const list=ss.split(',').map(x=>x.trim().split(/\s+/)).filter(x=>x[0]).map(x=>({u:x[0],w:parseInt(x[1])||0})).sort((a,b)=>a.w-b.w); const hit=list.find(x=>x.w>=540)||list[list.length-1]; return hit?hit.u:(im.getAttribute('data-src')||im.getAttribute('src')||''); }
 /* 讀分類頁（同網域 fetch）的最新商品，格式同 readNative；隱藏價格的略過。失敗回傳 [] */
 async function fetchCat(path,max){
   try{
