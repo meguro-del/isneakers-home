@@ -83,10 +83,26 @@ function parseTitle(t){
   for(const [re,b,strip] of rules){const m=t.match(re); if(m) return {b:(b||m[1]).toUpperCase(), n:strip?t.slice(m[0].length).trim():t.replace(/^Nike /i,'')};}
   const i=t.indexOf(' '); return i<0?{b:t.toUpperCase(),n:t}:{b:t.slice(0,i).toUpperCase(),n:t.slice(i+1)};
 }
+/* 用 SHOPLINE 給的完整圖片網址（含 ?source_format=…）：剛上架的商品 CDN 還沒產生縮圖，少了這個參數會讀不到 */
+const pick=im=>{ if(!im) return ''; const ss=im.getAttribute('data-srcset')||im.getAttribute('srcset')||''; const list=ss.split(',').map(x=>x.trim().split(/\s+/)).filter(x=>x[0]).map(x=>({u:x[0],w:parseInt(x[1])||0})).sort((a,b)=>a.w-b.w); const hit=list.find(x=>x.w>=540)||list[list.length-1]; return hit?hit.u:(im.getAttribute('data-src')||im.getAttribute('src')||''); };
+/* 讀分類頁（同網域 fetch）的最新商品，格式同 readNative；隱藏價格的略過。失敗回傳 [] */
+async function fetchCat(path,max){
+  try{
+    const ac=new AbortController(); const tm=setTimeout(()=>ac.abort(),8000);
+    const r=await fetch(path,{credentials:'same-origin',signal:ac.signal}); clearTimeout(tm); if(!r.ok) return [];
+    const d=new DOMParser().parseFromString(await r.text(),'text/html');
+    return [...d.querySelectorAll('a.Product-item[href*="/products/"]')].map(a=>{
+      const raw=((a.querySelector('.Product-title')||{}).textContent||'').replace(/\s+/g,' ').trim(); const {b,n}=parseTitle(raw);
+      const pe=a.querySelector('.price__sale')||a.querySelector('.Label-price:not(.Label-price-original)'); const pt=pe?pe.textContent:'';
+      const nums=[...pt.matchAll(/NT\$\s?([\d,]+)/g)].map(m=>+m[1].replace(/,/g,''));
+      const oe=a.querySelector('.Label-price-original'); const o=oe?+((oe.textContent.match(/[\d,]+/)||['0'])[0].replace(/,/g,'')):0;
+      const imgs=a.querySelectorAll('img');
+      return {b:escH(b),n:escH(n),href:a.getAttribute('href'),src:pick(a.querySelector('.second-image img'))||pick(imgs[0]),src2:pick(imgs[0]),t:raw,o,p:nums[0]||0,from:/~/.test(pt)};
+    }).filter(x=>x.p&&x.src).slice(0,max);
+  }catch(e){ return []; }
+}
 function readNative(id){
   const sec=document.getElementById('shopline-section-'+id); if(!sec) return [];
-  /* 用 SHOPLINE 給的完整圖片網址（含 ?source_format=…）：剛上架的商品 CDN 還沒產生縮圖，少了這個參數會讀不到 */
-  const pick=im=>{ if(!im) return ''; const ss=im.getAttribute('data-srcset')||im.getAttribute('srcset')||''; const list=ss.split(',').map(x=>x.trim().split(/\s+/)).filter(x=>x[0]).map(x=>({u:x[0],w:parseInt(x[1])||0})).sort((a,b)=>a.w-b.w); const hit=list.find(x=>x.w>=540)||list[list.length-1]; return hit?hit.u:(im.getAttribute('data-src')||im.getAttribute('src')||''); };
   return [...sec.querySelectorAll('.product-list__product')].map(p=>{
     const a=p.querySelector('a[href*="/products/"]'); if(!a) return null;
     const pe=p.querySelector('.price-sale')||p.querySelector('.quick-cart-price .price:not(.price-crossed)')||p.querySelector('.quick-cart-price');
@@ -253,9 +269,11 @@ addEventListener('keydown',e=>{ if(!tl.classList.contains('open')) return; if(e.
 /* 精選服飾 6×2（上線後由 SHOPLINE 的分類商品自動帶入） */
 const FX=readNative('isnplfx');
 const fxGrid=document.getElementById('fxGrid');
-fxGrid.innerHTML=FX.map((r,i)=>`<a class="fx-card" href="${r.href}" style="--n:${i}">
+const fxRender=FX=>{fxGrid.innerHTML=FX.map((r,i)=>`<a class="fx-card" href="${r.href}" style="--n:${i}">
   <div class="ph"><img src="${r.src}" alt="${r.n}" loading="lazy"><span class="no">${String(i+1).padStart(2,'0')}</span>${i<2?'<span class="bdg new">NEW</span>':''}<span class="go">→</span></div>
-  <div class="info"><span class="mono">${r.b}</span><div class="nm">${r.n}</div><div class="pr">${fmt(r.p)}${r.from?' 起':''}</div></div></a>`).join('');
+  <div class="info"><span class="mono">${r.b}</span><div class="nm">${r.n}</div><div class="pr">${fmt(r.p)}${r.from?' 起':''}</div></div></a>`).join('');};
+fxRender(FX);
+fetchCat('/categories/clothes?sort_by=created_at&order_by=desc',12).then(L=>{ if(L.length>=6) fxRender(L); });
 new IntersectionObserver(([e],o)=>{ if(e.isIntersecting){ fxGrid.classList.add('in'); o.disconnect(); } },{threshold:.15}).observe(fxGrid);
 addEventListener('scroll',function fc(){ if(fxGrid.getBoundingClientRect().top<innerHeight*.9){ fxGrid.classList.add('in'); removeEventListener('scroll',fc);} },{passive:true});
 
